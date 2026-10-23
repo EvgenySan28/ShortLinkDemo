@@ -1,5 +1,5 @@
-﻿using Data.Entities;
-using Data.Entities.Configurations;
+﻿using Data.Entities.Configurations;
+using Domain.ShortLinks;
 using Microsoft.EntityFrameworkCore;
 
 namespace Data;
