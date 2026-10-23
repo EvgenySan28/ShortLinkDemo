@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Core/">
-    <Project Path="Core/Core.csproj" />
+    <Project Path="Core/Domain/Domain.csproj" />
+    <Project Path="Core/Application/Application.csproj" />
   </Folder>
   <Folder Name="/Hosts/">
     <Project Path="ApiHost/ApiHost.csproj" />
@@ -8,5 +9,7 @@
   <Folder Name="/Infrastructure/">
     <Project Path="Data/Data.csproj" />
   </Folder>
-  <Folder Name="/Tests/" />
+  <Folder Name="/Tests/">
+    <Project Path="Tests/Application.Tests/Application.Tests.csproj" />
+  </Folder>
 </Solution>

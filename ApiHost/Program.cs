@@ -1,19 +1,28 @@
+using ApiHost.Options;
+using Application;
 using Data;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOpenApi();
-
-var postgres = builder.Configuration.GetConnectionString("Postgres")
-    ?? throw new InvalidOperationException("Connection string 'Postgres' is not configured.");
-builder.Services.AddDbContext<ShortLinkDbContext>(options => options.UseNpgsql(postgres));
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services
+    .AddOptions<ShortLinkOptions>()
+    .Bind(builder.Configuration.GetSection("ShortLinks"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
+
+app.MapControllers();
 
 app.Run();
