@@ -1,0 +1,33 @@
+name: shortlink
+
+services:
+  api:
+    image: shortlink-api:${IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shortlink-api
+    restart: unless-stopped
+    mem_limit: 512m
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Postgres: "${POSTGRES_CONNECTION_STRING:?};GSS Encryption Mode=Disable"
+      ConnectionStrings__Redis: "${REDIS_CONNECTION_STRING:?}"
+    networks:
+      - web
+      - postgres
+      - redis
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/8080'"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 40s
+
+networks:
+  web:
+    external: true
+  postgres:
+    external: true
+  redis:
+    external: true
