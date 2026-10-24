@@ -28,9 +28,9 @@ public sealed class CreateShortLinkHandler(
         if (!OriginalLinkRules.TryNormalize(command.OriginalLink, out var normalized, out var error))
             return new CreateShortLinkResult.Invalid(error);
 
-        var existing = await repository.FindByOriginalLink(normalized, cancellationToken);
-        if (existing is not null)
-            return new CreateShortLinkResult.AlreadyExists(existing.Code, existing.OriginalLink);
+        var existingCode = await repository.FindCodeByOriginalLink(normalized, cancellationToken);
+        if (existingCode is not null)
+            return new CreateShortLinkResult.AlreadyExists(existingCode, normalized);
 
         for (var attempt = 0; attempt < MaxCodeAttempts; attempt++)
         {
@@ -42,11 +42,11 @@ public sealed class CreateShortLinkHandler(
                 case TryAddShortLinkResult.CodeTaken:
                     continue;
                 case TryAddShortLinkResult.OriginalLinkTaken:
-                    var winner = await repository.FindByOriginalLink(normalized, cancellationToken);
-                    if (winner is null)
+                    var winnerCode = await repository.FindCodeByOriginalLink(normalized, cancellationToken);
+                    if (winnerCode is null)
                         throw new InvalidOperationException("A conflicting short link was not found.");
 
-                    return new CreateShortLinkResult.AlreadyExists(winner.Code, winner.OriginalLink);
+                    return new CreateShortLinkResult.AlreadyExists(winnerCode, normalized);
             }
         }
 
