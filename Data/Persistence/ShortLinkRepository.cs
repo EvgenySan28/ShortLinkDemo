@@ -1,11 +1,12 @@
 using Application.Abstractions;
 using Domain.ShortLinks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace Data.Persistence;
 
-internal sealed class ShortLinkRepository(ShortLinkDbContext db) : IShortLinkRepository
+internal sealed class ShortLinkRepository(ShortLinkDbContext db, ILogger<ShortLinkRepository> logger) : IShortLinkRepository
 {
     private const string CodeUniqueIndex = "IX_ShortLinks_Code";
     private const string OriginalLinkUniqueIndex = "IX_ShortLinks_OriginalLink";
@@ -34,18 +35,28 @@ internal sealed class ShortLinkRepository(ShortLinkDbContext db) : IShortLinkRep
         try
         {
             await db.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("Saved short link {Code}.", shortLink.Code);
             return TryAddShortLinkResult.Added;
         }
-        catch (DbUpdateException exception) when (FindUniqueViolation(exception) is not null)
+        catch (DbUpdateException exception) when (FindUniqueViolation(exception) is { } violation)
         {
             db.Entry(shortLink).State = EntityState.Detached;
-            switch (FindUniqueViolation(exception)!.ConstraintName)
+            switch (violation.ConstraintName)
             {
                 case CodeUniqueIndex:
+                    logger.LogWarning("Short code {Code} collided with an existing row.", shortLink.Code);
                     return TryAddShortLinkResult.CodeTaken;
                 case OriginalLinkUniqueIndex:
+                    logger.LogWarning(
+                        "Original link was inserted concurrently while saving short code {Code}.",
+                        shortLink.Code);
                     return TryAddShortLinkResult.OriginalLinkTaken;
                 default:
+                    logger.LogError(
+                        exception,
+                        "Failed to save short link {Code}: unexpected unique constraint {ConstraintName}.",
+                        shortLink.Code,
+                        violation.ConstraintName);
                     throw;
             }
         }

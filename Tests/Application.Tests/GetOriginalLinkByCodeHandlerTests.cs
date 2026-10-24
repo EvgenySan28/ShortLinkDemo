@@ -1,5 +1,6 @@
 using Application.Abstractions;
 using Application.ShortLinks.GetOriginalLink;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Application.Tests;
 
@@ -55,5 +56,5 @@ public sealed class GetOriginalLinkByCodeHandlerTests
     }
 
     private static GetOriginalLinkByCodeHandler CreateSut(Mock<IShortLinkRepository> repository)
-        => new(repository.Object);
+        => new(repository.Object, NullLogger<GetOriginalLinkByCodeHandler>.Instance);
 }

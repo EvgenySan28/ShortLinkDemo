@@ -3,6 +3,7 @@ using Application.Abstractions;
 using Data.Options;
 using Data.Persistence;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using OptionsFactory = Microsoft.Extensions.Options.Options;
 
@@ -86,7 +87,8 @@ public sealed class CachingShortLinkRepositoryTests
         return new CachingShortLinkRepository(
             repository.Object,
             cache.Object,
-            OptionsFactory.Create(new RedirectCacheOptions { Duration = duration }));
+            OptionsFactory.Create(new RedirectCacheOptions { Duration = duration }),
+            NullLogger<CachingShortLinkRepository>.Instance);
     }
 
     private static string CacheKey(string code) => "redirect:" + code;

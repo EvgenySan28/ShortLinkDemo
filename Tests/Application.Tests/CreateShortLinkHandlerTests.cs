@@ -1,6 +1,7 @@
 using Application.Abstractions;
 using Application.ShortLinks.Create;
 using Domain.ShortLinks;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
 
 namespace Application.Tests;
@@ -220,7 +221,11 @@ public sealed class CreateShortLinkHandlerTests
     private static CreateShortLinkHandler CreateSut(
         Mock<IShortLinkRepository> repository,
         Mock<ILinkCodeGenerator> codeGenerator)
-        => new(repository.Object, codeGenerator.Object, new FakeTimeProvider(CreatedAt));
+        => new(
+            repository.Object,
+            codeGenerator.Object,
+            new FakeTimeProvider(CreatedAt),
+            NullLogger<CreateShortLinkHandler>.Instance);
 
     private static void VerifyAll(
         Mock<IShortLinkRepository> repository,

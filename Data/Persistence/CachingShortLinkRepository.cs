@@ -2,6 +2,7 @@ using Application.Abstractions;
 using Data.Options;
 using Domain.ShortLinks;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Data.Persistence;
@@ -9,7 +10,8 @@ namespace Data.Persistence;
 internal sealed class CachingShortLinkRepository(
     IShortLinkRepository repository,
     IDistributedCache cache,
-    IOptions<RedirectCacheOptions> options) : IShortLinkRepository
+    IOptions<RedirectCacheOptions> options,
+    ILogger<CachingShortLinkRepository> logger) : IShortLinkRepository
 {
     private const string KeyPrefix = "redirect:";
 
@@ -23,7 +25,10 @@ internal sealed class CachingShortLinkRepository(
         var key = KeyPrefix + code;
         var cached = await cache.GetStringAsync(key, cancellationToken);
         if (cached is not null)
+        {
+            logger.LogInformation("Redirect cache hit for short code {Code}.", code);
             return cached;
+        }
 
         var originalLink = await repository.FindOriginalLinkByCode(code, cancellationToken);
         if (originalLink is null)
@@ -38,6 +43,7 @@ internal sealed class CachingShortLinkRepository(
             },
             cancellationToken);
 
+        logger.LogInformation("Stored short code {Code} in the redirect cache.", code);
         return originalLink;
     }
 
