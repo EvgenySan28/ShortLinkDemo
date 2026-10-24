@@ -1,6 +1,7 @@
 using ApiHost.Options;
 using Application;
 using Data;
+using Data.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +20,11 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services
     .AddOptions<ShortLinkOptions>()
     .Bind(builder.Configuration.GetSection("ShortLinks"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services
+    .AddOptions<RedirectCacheOptions>()
+    .Bind(builder.Configuration.GetSection("RedirectCache"))
     .ValidateDataAnnotations()
     .ValidateOnStart();
 

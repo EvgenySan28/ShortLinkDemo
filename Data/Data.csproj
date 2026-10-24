@@ -14,8 +14,10 @@
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.4">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
+		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.4" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.4" />
 		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+		<PackageReference Include="Scrutor" Version="7.0.0" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Core\Application\Application.csproj" />
@@ -23,6 +25,9 @@
 	</ItemGroup>
 	<ItemGroup>
 		<Folder Include="Migrations\" />
+	</ItemGroup>
+	<ItemGroup>
+		<InternalsVisibleTo Include="Data.Tests" />
 	</ItemGroup>
 
 </Project>
