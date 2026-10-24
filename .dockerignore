@@ -1,0 +1,11 @@
+**/.git
+**/.vs
+**/.vscode
+**/.github
+**/bin
+**/obj
+**/graphify-out
+**/*.env
+**/.env
+**/TestResults
+Tests

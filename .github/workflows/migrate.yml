@@ -1,0 +1,28 @@
+name: Накатить миграции
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: migrate
+  cancel-in-progress: false
+
+jobs:
+  test:
+    uses: ./.github/workflows/tests.yml
+
+  migrate:
+    name: Apply migrations
+    needs: test
+    runs-on: [self-hosted, homeserver]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Apply migrations
+        env:
+          POSTGRES_CONNECTION_STRING: ${{ secrets.POSTGRES_CONNECTION_STRING }}
+        run: bash scripts/shortlink-command.sh migrate

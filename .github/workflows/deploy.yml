@@ -1,0 +1,50 @@
+name: Накатить сервис
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  test:
+    uses: ./.github/workflows/tests.yml
+
+  deploy:
+    name: Deploy to homeserver
+    needs: test
+    runs-on: [self-hosted, homeserver]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Require applied migrations
+        env:
+          POSTGRES_CONNECTION_STRING: ${{ secrets.POSTGRES_CONNECTION_STRING }}
+        run: bash scripts/shortlink-command.sh check-migrations
+
+      - name: Start service
+        id: start
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          POSTGRES_CONNECTION_STRING: ${{ secrets.POSTGRES_CONNECTION_STRING }}
+          REDIS_CONNECTION_STRING: ${{ secrets.REDIS_CONNECTION_STRING }}
+        run: docker compose up -d --build --remove-orphans --wait --wait-timeout 120
+
+      - name: Show logs on failure
+        if: failure() && steps.start.outcome == 'failure'
+        run: docker logs --tail 150 shortlink-api || true
+
+      - name: Remove previous images
+        if: success()
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          old="$(docker images shortlink-api --format '{{.Repository}}:{{.Tag}}' | grep -v ":${IMAGE_TAG}$" || true)"
+          if [ -n "$old" ]; then
+            printf '%s\n' "$old" | xargs -r docker rmi
+          fi
