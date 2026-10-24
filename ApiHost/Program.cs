@@ -2,8 +2,14 @@ using ApiHost.Options;
 using Application;
 using Data;
 using Data.Options;
+using Serilog;
+using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddSerilog((services, configuration) => configuration
+    .ReadFrom.Configuration(builder.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext());
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -32,6 +38,15 @@ var app = builder.Build();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
+app.UseSerilogRequestLogging(options =>
+{
+    options.GetLevel = (httpContext, _, exception) =>
+        exception is not null || httpContext.Response.StatusCode >= StatusCodes.Status500InternalServerError
+            ? LogEventLevel.Error
+            : httpContext.Response.StatusCode >= StatusCodes.Status400BadRequest
+                ? LogEventLevel.Warning
+                : LogEventLevel.Information;
+});
 
 if (app.Environment.IsDevelopment())
 {
