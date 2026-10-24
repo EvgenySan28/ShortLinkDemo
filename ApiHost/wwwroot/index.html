@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Короткая ссылка</title>
+  <style>
+    :root {
+      color: #1c1917;
+      background: #f6f3ee;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      line-height: 1.4;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    main {
+      box-sizing: border-box;
+      width: min(36rem, calc(100% - 2rem));
+      margin: 4rem auto;
+      padding: 1.5rem;
+      background: #fff;
+      border: 1px solid #e7e0d6;
+      border-radius: 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    .lead {
+      margin: 0.4rem 0 1.25rem;
+      color: #57534e;
+    }
+
+    form {
+      display: grid;
+      gap: 0.6rem;
+    }
+
+    label {
+      font-weight: 600;
+    }
+
+    input {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid #d6d3d1;
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    button {
+      justify-self: start;
+      padding: 0.6rem 0.9rem;
+      border: 0;
+      border-radius: 8px;
+      background: #1d4ed8;
+      color: #fff;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.7;
+    }
+
+    .error {
+      margin: 0;
+      color: #b91c1c;
+    }
+
+    .result {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 1.25rem;
+    }
+
+    .result[hidden] {
+      display: none;
+    }
+
+    .result a {
+      overflow-wrap: anywhere;
+      color: #1d4ed8;
+    }
+
+    @media (max-width: 40rem) {
+      main {
+        margin-top: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Короткая ссылка</h1>
+    <p class="lead">Вставьте длинный адрес и получите короткий.</p>
+
+    <form id="create-form">
+      <label for="original-link">Оригинальная ссылка</label>
+      <input
+        id="original-link"
+        name="originalLink"
+        type="url"
+        inputmode="url"
+        maxlength="2048"
+        placeholder="https://example.com/very/long/path"
+        autocomplete="url"
+        required>
+      <button id="create-button" type="submit">Получить короткую</button>
+      <p id="error" class="error" hidden></p>
+    </form>
+
+    <div id="result" class="result" hidden>
+      <a id="short-link" target="_blank" rel="noopener noreferrer"></a>
+      <button id="copy-button" type="button">Скопировать</button>
+    </div>
+  </main>
+  <script>
+    const form = document.querySelector("#create-form");
+    const originalLinkInput = document.querySelector("#original-link");
+    const createButton = document.querySelector("#create-button");
+    const errorElement = document.querySelector("#error");
+    const resultElement = document.querySelector("#result");
+    const shortLinkElement = document.querySelector("#short-link");
+    const copyButton = document.querySelector("#copy-button");
+
+    const knownErrors = new Map([
+      ["Original link is required.", "Укажите оригинальную ссылку."],
+      ["Original link must be at most 2048 characters.", "Ссылка должна быть не длиннее 2048 символов."],
+      ["Original link must be an absolute http or https URL.", "Нужна абсолютная ссылка http или https."],
+      ["Original link must not include user info.", "В ссылке не должно быть логина и пароля."]
+    ]);
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      await createShortLink();
+    });
+
+    copyButton.addEventListener("click", async () => {
+      const shortUrl = shortLinkElement.textContent;
+      const copied = await copyText(shortUrl);
+      copyButton.textContent = copied ? "Скопировано" : "Не удалось скопировать";
+
+      window.setTimeout(() => {
+        copyButton.textContent = "Скопировать";
+      }, 2000);
+    });
+
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        const area = document.createElement("textarea");
+        area.value = text;
+        area.setAttribute("readonly", "");
+        area.style.position = "fixed";
+        area.style.top = "0";
+        area.style.left = "0";
+        document.body.appendChild(area);
+        area.focus();
+        area.select();
+
+        let copied = false;
+        try {
+          copied = document.execCommand("copy");
+        } catch {
+          copied = false;
+        }
+
+        area.remove();
+        return copied;
+      }
+    }
+
+    async function createShortLink() {
+      hideError();
+      createButton.disabled = true;
+
+      try {
+        const shortUrl = await requestShortUrl(originalLinkInput.value.trim());
+        showShortLink(shortUrl);
+      } catch (error) {
+        hideResult();
+        showError(error instanceof Error ? error.message : "Не удалось получить короткую ссылку.");
+      } finally {
+        createButton.disabled = false;
+      }
+    }
+
+    async function requestShortUrl(originalLink) {
+      const response = await fetch("/links", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({ originalLink })
+      });
+
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        const serverError = payload && typeof payload.error === "string" ? payload.error : "";
+        throw new Error(knownErrors.get(serverError) ?? (serverError || "Не удалось получить короткую ссылку."));
+      }
+
+      if (!payload || typeof payload.shortUrl !== "string" || !/^https?:\/\//i.test(payload.shortUrl)) {
+        throw new Error("Сервер вернул ответ без короткой ссылки.");
+      }
+
+      return payload.shortUrl;
+    }
+
+    function showShortLink(shortUrl) {
+      shortLinkElement.href = shortUrl;
+      shortLinkElement.textContent = shortUrl;
+      copyButton.textContent = "Скопировать";
+      resultElement.hidden = false;
+    }
+
+    function hideResult() {
+      resultElement.hidden = true;
+      shortLinkElement.removeAttribute("href");
+      shortLinkElement.textContent = "";
+    }
+
+    function showError(message) {
+      errorElement.textContent = message;
+      errorElement.hidden = false;
+    }
+
+    function hideError() {
+      errorElement.textContent = "";
+      errorElement.hidden = true;
+    }
+  </script>
+</body>
+</html>
