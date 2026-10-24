@@ -1,6 +1,7 @@
 using Application.Abstractions;
 using Application.ShortLinks;
 using Application.ShortLinks.Create;
+using Application.ShortLinks.GetOriginalLink;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application;
@@ -12,6 +13,7 @@ public static class DependencyInjection
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ILinkCodeGenerator, LinkRandomCodeGenerator>();
         services.AddScoped<CreateShortLinkHandler>();
+        services.AddScoped<GetOriginalLinkByCodeHandler>();
         return services;
     }
 }

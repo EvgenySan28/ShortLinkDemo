@@ -10,11 +10,22 @@ internal sealed class ShortLinkRepository(ShortLinkDbContext db) : IShortLinkRep
     private const string CodeUniqueIndex = "IX_ShortLinks_Code";
     private const string OriginalLinkUniqueIndex = "IX_ShortLinks_OriginalLink";
 
-    public Task<ShortLink?> FindByOriginalLink(string originalLink, CancellationToken cancellationToken)
+    public Task<string?> FindCodeByOriginalLink(string originalLink, CancellationToken cancellationToken)
     {
         return db.ShortLinks
             .AsNoTracking()
-            .FirstOrDefaultAsync(link => link.OriginalLink == originalLink, cancellationToken);
+            .Where(link => link.OriginalLink == originalLink)
+            .Select(link => link.Code)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public Task<string?> FindOriginalLinkByCode(string code, CancellationToken cancellationToken)
+    {
+        return db.ShortLinks
+            .AsNoTracking()
+            .Where(link => link.Code == code)
+            .Select(link => link.OriginalLink)
+            .SingleOrDefaultAsync(cancellationToken);
     }
 
     public async Task<TryAddShortLinkResult> TryAdd(ShortLink shortLink, CancellationToken cancellationToken)

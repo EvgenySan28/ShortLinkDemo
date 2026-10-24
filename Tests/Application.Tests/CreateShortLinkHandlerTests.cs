@@ -16,8 +16,8 @@ public sealed class CreateShortLinkHandlerTests
         var (repository, codeGenerator) = CreateMocks();
 
         repository
-            .Setup(r => r.FindByOriginalLink(OriginalLink, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ShortLink?)null);
+            .Setup(r => r.FindCodeByOriginalLink(OriginalLink, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
         repository
             .Setup(r => r.TryAdd(It.IsAny<ShortLink>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(TryAddShortLinkResult.Added);
@@ -36,19 +36,20 @@ public sealed class CreateShortLinkHandlerTests
     [Fact]
     public async Task Handle_ExistingUrl_ReturnsAlreadyExists()
     {
-        var existing = ShortLink.Create("https://example.com/docs", "abc1234", CreatedAt.UtcDateTime);
+        const string existingLink = "https://example.com/docs";
+        const string existingCode = "abc1234";
         var (repository, codeGenerator) = CreateMocks();
 
         repository
-            .Setup(r => r.FindByOriginalLink(existing.OriginalLink, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existing);
+            .Setup(r => r.FindCodeByOriginalLink(existingLink, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingCode);
 
         var result = await CreateSut(repository, codeGenerator)
-            .Handle(new CreateShortLinkCommand($"  {existing.OriginalLink}  "), CancellationToken.None);
+            .Handle(new CreateShortLinkCommand($"  {existingLink}  "), CancellationToken.None);
 
         var alreadyExists = Assert.IsType<CreateShortLinkResult.AlreadyExists>(result);
-        Assert.Equal(existing.Code, alreadyExists.Code);
-        Assert.Equal(existing.OriginalLink, alreadyExists.OriginalLink);
+        Assert.Equal(existingCode, alreadyExists.Code);
+        Assert.Equal(existingLink, alreadyExists.OriginalLink);
 
         VerifyAll(repository, codeGenerator);
     }
@@ -59,8 +60,8 @@ public sealed class CreateShortLinkHandlerTests
         var (repository, codeGenerator) = CreateMocks();
 
         repository
-            .Setup(r => r.FindByOriginalLink(OriginalLink, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ShortLink?)null);
+            .Setup(r => r.FindCodeByOriginalLink(OriginalLink, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
         repository
             .SetupSequence(r => r.TryAdd(It.IsAny<ShortLink>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(TryAddShortLinkResult.CodeTaken)
@@ -81,13 +82,13 @@ public sealed class CreateShortLinkHandlerTests
     [Fact]
     public async Task Handle_OriginalLinkTaken_ReturnsWinner()
     {
-        var winner = ShortLink.Create(OriginalLink, "winner1", CreatedAt.UtcDateTime);
+        const string winnerCode = "winner1";
         var (repository, codeGenerator) = CreateMocks();
 
         repository
-            .SetupSequence(r => r.FindByOriginalLink(OriginalLink, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ShortLink?)null)
-            .ReturnsAsync(winner);
+            .SetupSequence(r => r.FindCodeByOriginalLink(OriginalLink, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null)
+            .ReturnsAsync(winnerCode);
         repository
             .Setup(r => r.TryAdd(It.IsAny<ShortLink>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(TryAddShortLinkResult.OriginalLinkTaken);
@@ -97,10 +98,10 @@ public sealed class CreateShortLinkHandlerTests
             .Handle(new CreateShortLinkCommand(OriginalLink), CancellationToken.None);
 
         var alreadyExists = Assert.IsType<CreateShortLinkResult.AlreadyExists>(result);
-        Assert.Equal(winner.Code, alreadyExists.Code);
+        Assert.Equal(winnerCode, alreadyExists.Code);
         Assert.Equal(OriginalLink, alreadyExists.OriginalLink);
 
-        repository.Verify(r => r.FindByOriginalLink(OriginalLink, It.IsAny<CancellationToken>()), Times.Exactly(2));
+        repository.Verify(r => r.FindCodeByOriginalLink(OriginalLink, It.IsAny<CancellationToken>()), Times.Exactly(2));
         VerifyAll(repository, codeGenerator);
     }
 
@@ -110,8 +111,8 @@ public sealed class CreateShortLinkHandlerTests
         var (repository, codeGenerator) = CreateMocks();
 
         repository
-            .Setup(r => r.FindByOriginalLink(OriginalLink, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ShortLink?)null);
+            .Setup(r => r.FindCodeByOriginalLink(OriginalLink, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
         repository
             .Setup(r => r.TryAdd(It.IsAny<ShortLink>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(TryAddShortLinkResult.OriginalLinkTaken);
@@ -122,7 +123,7 @@ public sealed class CreateShortLinkHandlerTests
                 .Handle(new CreateShortLinkCommand(OriginalLink), CancellationToken.None));
 
         Assert.Equal("A conflicting short link was not found.", exception.Message);
-        repository.Verify(r => r.FindByOriginalLink(OriginalLink, It.IsAny<CancellationToken>()), Times.Exactly(2));
+        repository.Verify(r => r.FindCodeByOriginalLink(OriginalLink, It.IsAny<CancellationToken>()), Times.Exactly(2));
         VerifyAll(repository, codeGenerator);
     }
 
@@ -132,8 +133,8 @@ public sealed class CreateShortLinkHandlerTests
         var (repository, codeGenerator) = CreateMocks();
 
         repository
-            .Setup(r => r.FindByOriginalLink(OriginalLink, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ShortLink?)null);
+            .Setup(r => r.FindCodeByOriginalLink(OriginalLink, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
         repository
             .Setup(r => r.TryAdd(It.IsAny<ShortLink>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(TryAddShortLinkResult.CodeTaken);
@@ -194,8 +195,8 @@ public sealed class CreateShortLinkHandlerTests
         var originalLink = prefix + new string('a', OriginalLinkRules.MaxLength - prefix.Length);
 
         repository
-            .Setup(r => r.FindByOriginalLink(originalLink, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ShortLink?)null);
+            .Setup(r => r.FindCodeByOriginalLink(originalLink, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
         repository
             .Setup(r => r.TryAdd(It.IsAny<ShortLink>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(TryAddShortLinkResult.Added);
