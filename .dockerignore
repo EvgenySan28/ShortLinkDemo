@@ -7,5 +7,7 @@
 **/graphify-out
 **/*.env
 **/.env
+ApiHost/appsettings.Development.json
+Data/appsettings.DesignTime.json
 **/TestResults
 Tests

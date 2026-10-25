@@ -1,5 +1,6 @@
 # Project-specific
 Data/appsettings.DesignTime.json
+ApiHost/appsettings.Development.json
 /graphify-out
 
 ## Ignore Visual Studio temporary files, build results, and
