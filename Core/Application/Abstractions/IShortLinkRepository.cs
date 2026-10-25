@@ -8,5 +8,7 @@ public interface IShortLinkRepository
 
     Task<string?> FindOriginalLinkByCode(string code, CancellationToken cancellationToken);
 
+    Task<bool> IncrementRedirectCount(string code, CancellationToken cancellationToken);
+
     Task<TryAddShortLinkResult> TryAdd(ShortLink shortLink, CancellationToken cancellationToken);
 }

@@ -16,6 +16,9 @@ public sealed class GetOriginalLinkByCodeHandlerTests
         repository
             .Setup(r => r.FindOriginalLinkByCode(Code, It.IsAny<CancellationToken>()))
             .ReturnsAsync(OriginalLink);
+        repository
+            .Setup(r => r.IncrementRedirectCount(Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
 
         var result = await CreateSut(repository)
             .Handle(new GetOriginalLinkByCodeCommand(Code), CancellationToken.None);
@@ -37,6 +40,25 @@ public sealed class GetOriginalLinkByCodeHandlerTests
             .Handle(new GetOriginalLinkByCodeCommand(Code), CancellationToken.None);
 
         Assert.IsType<GetOriginalLinkByCodeResult.NotFound>(result);
+        repository.VerifyAll();
+    }
+
+    [Fact]
+    public async Task Handle_KnownCodeMissingAtIncrement_ReturnsFound()
+    {
+        var repository = new Mock<IShortLinkRepository>(MockBehavior.Strict);
+        repository
+            .Setup(r => r.FindOriginalLinkByCode(Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(OriginalLink);
+        repository
+            .Setup(r => r.IncrementRedirectCount(Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var result = await CreateSut(repository)
+            .Handle(new GetOriginalLinkByCodeCommand(Code), CancellationToken.None);
+
+        var found = Assert.IsType<GetOriginalLinkByCodeResult.Found>(result);
+        Assert.Equal(OriginalLink, found.OriginalLink);
         repository.VerifyAll();
     }
 

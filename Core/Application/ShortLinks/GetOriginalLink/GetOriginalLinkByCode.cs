@@ -33,6 +33,10 @@ public sealed class GetOriginalLinkByCodeHandler(
             return new GetOriginalLinkByCodeResult.NotFound();
         }
 
+        var incremented = await repository.IncrementRedirectCount(command.Code, cancellationToken);
+        if (!incremented)
+            logger.LogWarning("Short link {Code} was not found while counting the redirect.", command.Code);
+
         logger.LogInformation("Resolved short link {Code} to {OriginalLink}.", command.Code, link);
         return new GetOriginalLinkByCodeResult.Found(link);
     }
