@@ -2,6 +2,7 @@ using ApiHost.Contracts;
 using ApiHost.Options;
 using Application.ShortLinks.Create;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 
 namespace ApiHost.Controllers;
@@ -13,9 +14,11 @@ public sealed class ShortLinksController(
     IOptions<ShortLinkOptions> options) : ControllerBase
 {
     [HttpPost]
+    [EnableRateLimiting("create-short-link")]
     [ProducesResponseType(typeof(CreateShortLinkResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(CreateShortLinkResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(InvalidOriginalLinkResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<ActionResult<CreateShortLinkResponse>> Create(
         [FromBody] CreateShortLinkRequest? request,
         CancellationToken cancellationToken)

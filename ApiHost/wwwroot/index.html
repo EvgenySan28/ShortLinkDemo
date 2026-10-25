@@ -190,7 +190,9 @@
         const shortUrl = await requestShortUrl(originalLinkInput.value.trim());
         showShortLink(shortUrl);
       } catch (error) {
-        hideResult();
+        if (!(error instanceof RequestError) || !error.keepResult)
+          hideResult();
+
         showError(error instanceof Error ? error.message : "Не удалось получить короткую ссылку.");
       } finally {
         createButton.disabled = false;
@@ -208,6 +210,15 @@
       });
 
       const payload = await response.json().catch(() => null);
+      if (response.status === 429) {
+        const permitLimit = payload && Number.isInteger(payload.permitLimit) ? payload.permitLimit : 1;
+        const windowSeconds = payload && typeof payload.windowSeconds === "number" ? payload.windowSeconds : 5;
+        const message = permitLimit === 1
+          ? `Короткие ссылки можно создавать не чаще раза в ${windowSeconds} секунд.`
+          : `Короткие ссылки можно создавать не чаще ${permitLimit} раз за ${windowSeconds} секунд.`;
+        throw new RequestError(message, true);
+      }
+
       if (!response.ok) {
         const serverError = payload && typeof payload.error === "string" ? payload.error : "";
         throw new Error(knownErrors.get(serverError) ?? (serverError || "Не удалось получить короткую ссылку."));
@@ -221,6 +232,7 @@
     }
 
     function showShortLink(shortUrl) {
+      hideError();
       shortLinkElement.href = shortUrl;
       shortLinkElement.textContent = shortUrl;
       copyButton.textContent = "Скопировать";
@@ -241,6 +253,13 @@
     function hideError() {
       errorElement.textContent = "";
       errorElement.hidden = true;
+    }
+
+    class RequestError extends Error {
+      constructor(message, keepResult) {
+        super(message);
+        this.keepResult = keepResult;
+      }
     }
   </script>
 </body>
