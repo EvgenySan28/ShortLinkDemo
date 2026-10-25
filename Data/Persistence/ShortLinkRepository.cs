@@ -29,6 +29,17 @@ internal sealed class ShortLinkRepository(ShortLinkDbContext db, ILogger<ShortLi
             .SingleOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<bool> IncrementRedirectCount(string code, CancellationToken cancellationToken)
+    {
+        var updated = await db.ShortLinks
+            .Where(link => link.Code == code)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(link => link.RedirectCount, link => link.RedirectCount + 1),
+                cancellationToken);
+
+        return updated == 1;
+    }
+
     public async Task<TryAddShortLinkResult> TryAdd(ShortLink shortLink, CancellationToken cancellationToken)
     {
         db.ShortLinks.Add(shortLink);

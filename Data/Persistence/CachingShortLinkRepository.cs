@@ -47,6 +47,11 @@ internal sealed class CachingShortLinkRepository(
         return originalLink;
     }
 
+    public Task<bool> IncrementRedirectCount(string code, CancellationToken cancellationToken)
+    {
+        return repository.IncrementRedirectCount(code, cancellationToken);
+    }
+
     public Task<TryAddShortLinkResult> TryAdd(ShortLink shortLink, CancellationToken cancellationToken)
     {
         return repository.TryAdd(shortLink, cancellationToken);
